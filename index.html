@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SmartBK Digital: Sistem Manajemen Pemetaan Kelas, Asesmen, Kedisiplinan & E-Report BK</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'};try{if(localStorage.getItem('bktheme')==='dark')document.documentElement.classList.add('dark')}catch(x){}</script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style type="text/tailwindcss">
+.inp{@apply w-full border border-slate-300 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-600}
+.btn{@apply px-3 py-1.5 rounded-md text-sm font-medium bg-teal-700 text-white hover:bg-teal-800}
+.btn2{@apply px-3 py-1.5 rounded-md text-sm font-medium bg-white border border-slate-300 hover:bg-slate-100}
+.card{@apply bg-white rounded-lg border border-slate-200 p-4}
+.lbl{@apply block text-xs font-medium text-slate-600 mb-1}
+</style>
+<style>
+body{font-family:'Segoe UI',system-ui,sans-serif}
+#print{display:none}
+.dark .inp,.dark .btn2{background:#1e293b;border-color:#475569;color:#f1f5f9}.dark .btn2:hover{background:#334155}
+.dark .card,.dark header{background:#1e293b;border-color:#334155}
+.dark .lbl,.dark .text-slate-500,.dark .text-slate-600{color:#94a3b8}
+.dark .text-teal-700{color:#2dd4bf}.dark .border-b,.dark .border-t{border-color:#334155}
+.sheet{width:190mm;min-height:270mm;background:#fff;padding:6mm;font-size:10px;line-height:1.3;color:#000;border:1px solid #cbd5e1;margin:auto}
+.sheet table{width:100%;border-collapse:collapse}
+.sheet td,.sheet th{border:1px solid #000;padding:2px 4px;vertical-align:top}
+.sheet th{background:#e2e8f0}
+@page{size:A4;margin:10mm}
+@media print{html,body{background:#fff!important;color:#000!important}#app{display:none!important}#print{display:block!important}.sheet{break-after:page}.sheet:last-child{break-after:auto}.sheet{border:0;margin:0;padding:0;width:100%}}
+</style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 dark:text-slate-100">
+<div id="app" class="flex flex-col md:flex-row min-h-screen">
+ <aside class="md:w-56 bg-slate-950 text-slate-100 md:min-h-screen shrink-0 flex flex-col">
+  <div class="p-4 flex items-center gap-2"><span class="bg-teal-600 rounded-lg p-1.5"><i data-lucide="heart-handshake" class="w-5 h-5"></i></span><div class="font-bold text-lg leading-tight">SmartBK Digital<div class="text-[11px] font-normal text-slate-400">Asesmen, Administrasi & E-Report BK</div></div></div>
+  <nav id="nav" class="flex md:flex-col overflow-x-auto md:overflow-visible px-2 pb-2 gap-1"></nav>
+  <div class="md:mt-auto p-3 text-[11px] text-slate-400 border-t border-slate-700">Pemilik Sistem: Ane Debora • Lara Foundation (2026)</div>
+ </aside>
+ <div class="flex-1 min-w-0 flex flex-col">
+  <header class="bg-white border-b px-4 py-2 flex flex-wrap gap-2 justify-end items-center">
+   <span class="mr-auto flex items-center gap-2 text-sm text-slate-500"><i data-lucide="heart-handshake" class="w-5 h-5 text-teal-700"></i><b class="text-slate-800 dark:text-slate-100">SmartBK Digital</b> — data tersimpan otomatis di browser ini</span>
+   <button class="btn2" onclick="backup()">Backup Data (JSON)</button>
+   <label class="btn2 cursor-pointer">Restore Data (JSON)<input type="file" accept=".json" class="hidden" onchange="restore(event)"></label>
+   <button class="btn2 flex items-center gap-1" onclick="tgTheme()" title="Ganti mode siang/malam"><i data-lucide="moon" class="w-4 h-4 dark:hidden"></i><i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>Mode</button>
+  </header>
+  <main id="main" class="p-4 flex-1"></main>
+  <footer class="px-4 py-3 text-center text-xs text-slate-500 border-t">Pemilik Sistem: Ane Debora | Dikembangkan oleh Lara Foundation © 2026</footer>
+ </div>
+</div>
+<div id="print"></div>
+
+<script>
+const A=[
+["Landasan Hidup Religius","menghayati dan mengamalkan nilai keimanan serta ketakwaan"],
+["Landasan Perilaku Etis","menerapkan norma, tata tertib, dan perilaku etis di sekolah maupun masyarakat"],
+["Kematangan Emosi","mengenali, mengelola, dan mengekspresikan emosi secara tepat"],
+["Kematangan Intelektual","mengembangkan cara belajar, berpikir kritis, dan memecahkan masalah"],
+["Kesadaran Tanggung Jawab Sosial","peduli, bekerja sama, dan bertanggung jawab terhadap lingkungan sosial"],
+["Kesadaran Gender","menghargai kesetaraan serta peran gender secara positif"],
+["Pengembangan Pribadi","mengenali potensi diri dan mengembangkan kemandirian"],
+["Perilaku Kewirausahaan","menunjukkan sikap mandiri, ulet, kreatif, dan berorientasi pada hasil"],
+["Wawasan dan Kesiapan Karir","memahami minat, bakat, serta merencanakan pendidikan dan karir"],
+["Hubungan dengan Teman Sebaya","menjalin hubungan yang sehat, saling menghargai, dan menyelesaikan konflik"],
+["Persiapan Kehidupan Berkeluarga","memahami peran, tanggung jawab, dan nilai kehidupan berkeluarga"]];
+const PR=["Sangat Baik","Baik","Cukup","Perlu Pengembangan"];
+const FR=["Ananda sangat baik dalam {p}, tampil konsisten, dan dapat menjadi teladan bagi teman sebaya.",
+"Ananda sudah baik dalam {p}; capaian ini perlu dipertahankan dan terus ditingkatkan.",
+"Ananda cukup mampu dalam {p}, namun masih memerlukan bimbingan agar lebih konsisten.",
+"Ananda masih perlu pengembangan dalam {p}; diperlukan pendampingan intensif dari guru BK, wali kelas, dan orang tua."];
+const UN=["Rajin dan disiplin","Santun dan hormat kepada orang lain","Memiliki jiwa kepemimpinan","Kreatif dan inovatif","Komunikasi yang baik","Empati dan peduli sesama","Tekun dalam belajar","Mampu bekerja sama dalam tim","Mandiri dan percaya diri","Jujur dan bertanggung jawab"];
+const RE=["Mendampingi belajar di rumah secara rutin","Membatasi penggunaan gawai dan menjaga waktu istirahat","Menjalin komunikasi rutin dengan wali kelas dan guru BK","Memberikan apresiasi atas usaha dan kemajuan anak","Menyediakan waktu berkualitas bersama anak","Memfasilitasi pengembangan minat dan bakat anak","Membiasakan ibadah dan kegiatan positif bersama","Menjaga pola tidur dan makan yang sehat","Membiasakan tanggung jawab tugas di rumah","Hadir aktif pada pertemuan orang tua di sekolah"];
+const JN=["Konseling Individu","Konseling Kelompok","Bimbingan Klasikal","Kunjungan Rumah","Konsultasi","Kolaborasi","Alih Kasus","Konferensi Kasus"];
+const GQ=[["V","Saya mudah memahami pelajaran lewat gambar atau diagram"],["V","Saya suka mencatat dengan warna dan peta pikiran"],["V","Saya lebih ingat apa yang saya lihat"],
+["A","Saya mudah paham lewat penjelasan lisan"],["A","Saya suka belajar dengan berdiskusi"],["A","Saya mudah mengingat apa yang saya dengar"],
+["K","Saya suka belajar dengan praktik langsung"],["K","Saya sulit duduk diam dalam waktu lama"],["K","Saya mudah ingat lewat gerakan atau aktivitas"]];
+const GN={V:"Visual",A:"Auditori",K:"Kinestetik"};
+const MQ=[["R","Saya suka memperbaiki atau merakit sesuatu"],["R","Saya suka kegiatan di luar ruangan"],["I","Saya suka meneliti dan bereksperimen"],["I","Saya suka memecahkan soal logika"],
+["A","Saya suka menggambar, bermusik, atau menulis kreatif"],["A","Saya suka membuat karya yang orisinal"],["S","Saya suka membantu teman yang kesulitan"],["S","Saya suka kegiatan sosial atau mengajar"],
+["E","Saya suka memimpin kegiatan atau organisasi"],["E","Saya suka berjualan dan meyakinkan orang"],["C","Saya suka merapikan data dan administrasi"],["C","Saya suka bekerja teratur sesuai prosedur"]];
+const MN={R:"Realistis",I:"Investigatif",A:"Artistik",S:"Sosial",E:"Enterprising",C:"Konvensional"};
+const OWN="Pemilik Sistem: Ane Debora | Dikembangkan oleh Lara Foundation © 2026";
+const FOOT=`<div style="margin-top:8px;border-top:1px solid #000;padding-top:2px;text-align:center;font-size:8px">SmartBK Digital E-Report System oleh Ane Debora — Lara Foundation © 2026<br>${OWN}</div>`;
+const NAV=[["dash","Dashboard","layout-dashboard"],["kelas","Pemetaan Kelas","layout-grid"],["sekolah","Data Sekolah","school"],["siswa","Data Siswa","users"],["absen","Absensi & Kehadiran","calendar-check"],["poin","Poin Perilaku","scale"],["jurnal","Jurnal Layanan","notebook-pen"],["ases","Asesmen Siswa","clipboard-check"],["skkpd","Input SKKPD","target"],["bank","Bank Deskripsi","library"],["rep","E-Report & Export","printer"],["about","Tentang Sistem","info"]];
+function tgTheme(){const d=document.documentElement.classList.toggle('dark');try{localStorage.setItem('bktheme',d?'dark':'light')}catch(x){}render()}
+
+const $=s=>document.querySelector(s),v=id=>$('#'+id).value;
+const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const today=new Date().toISOString().slice(0,8);
+let S=null,V='dash',sel=null,editId=null;
+
+function mkBank(){return{desc:A.map(a=>FR.map(f=>f.replace('{p}',a[1]))),unggul:[...UN],rek:[...RE]}}
+function newS(o){const id='S'+Date.now()+Math.floor(Math.random()*9999);return{id,nisn:o.nisn||'',nama:o.nama||'',kelas:o.kelas||'',jk:o.jk||'L',wali:o.wali||'',sk:A.map((_,i)=>({p:1,d:S.bank.desc[i][1]})),u:[],r:[],gaya:null,minat:null,skOk:false}}
+function seed(){
+ S={sch:{nama:"SMP Negeri 1 Nusantara",npsn:"20100001",alamat:"Jl. Pendidikan No. 1, Nusantara",kepsek:"Drs. Hendra Wijaya, M.Pd.",nipKepsek:"196805121994031005",gbk:"Siti Rahmawati, S.Pd., Gr.",nipGbk:"198811202015032002",smt:"Ganjil",ta:"2026/2027",kota:"Nusantara",tgl:new Date().toISOString().slice(0,10)},siswa:[],jurnal:[],bank:mkBank(),kelas:[{n:'VII-A',t:'VII',wali:'Ibu Ratna, S.Pd.',nip:'198203152006042001'},{n:'VII-B',t:'VII',wali:'Bapak Yusuf, M.Pd.',nip:'197905202005011003'},{n:'VIII-A',t:'VIII',wali:'Ibu Dewi, S.Pd.',nip:'198507102010012004'}]};
+ const D=[["0101","Ahmad Fauzi","VII-A","L","Ibu Ratna, S.Pd.",[0,0,1,1,0,1,0,1,1,0,1],[0,6,8],[0,1,3]],
+ ["0102","Bunga Citra Lestari","VII-A","P","Ibu Ratna, S.Pd.",[1,0,0,0,1,1,1,2,1,0,1],[2,5,7],[1,4,5]],
+ ["0103","Dimas Prasetyo","VII-B","L","Bapak Yusuf, M.Pd.",[1,1,2,2,1,1,2,2,2,1,2],[3,9,4],[0,2,7]],
+ ["0104","Eka Putri Handayani","VII-B","P","Ibu Dewi, S.Pd.",[0,1,1,0,0,1,1,1,0,0,1],[1,5,0],[3,6,9]],
+ ["0105","Rizky Maulana","VIII-A","L","Bapak Agus, S.Pd.",[1,2,3,2,2,1,2,3,2,2,2],[3,7,8],[1,2,4]],
+ ["0106","Salsabila Nur Aini","VIII-A","P","",[0,0,0,0,1,0,0,1,0,0,1],[0,4,6],[1,3,6]]];
+ D.forEach(d=>{const s=newS({nisn:"00512"+d[0],nama:d[1],kelas:d[2],jk:d[3],wali:d[4]});s.sk=d[5].map((p,i)=>({p,d:S.bank.desc[i][p]}));s.u=d[6];s.r=d[7];s.skOk=true;S.siswa.push(s)});
+ const GY=[{V:3,A:1,K:2},{V:1,A:3,K:2},{V:2,A:1,K:3},{V:3,A:2,K:1},{V:1,A:1,K:3},{V:2,A:3,K:1}],MY=[{R:2,I:2,A:0,S:1,E:1,C:1},{R:0,I:1,A:2,S:2,E:1,C:0},{R:2,I:0,A:1,S:0,E:2,C:1},{R:1,I:2,A:1,S:2,E:0,C:1},{R:2,I:1,A:0,S:0,E:2,C:2},{R:0,I:2,A:2,S:1,E:1,C:1}];S.siswa.forEach((z,i)=>{z.gaya=GY[i];z.minat=MY[i]});
+ S.jurnal=[{tgl:today+"05",sid:S.siswa[4].id,jenis:"Konseling Individu",topik:"Kesulitan berkonsentrasi dan nilai menurun",tl:"Pantau perkembangan, kolaborasi dengan wali kelas",status:"Proses"},
+ {tgl:today+"08",sid:S.siswa[2].id,jenis:"Konseling Kelompok",topik:"Manajemen waktu belajar",tl:"Sesi lanjutan minggu depan",status:"Proses"},
+ {tgl:today+"12",sid:"",kls:"VII-A",jenis:"Bimbingan Klasikal",topik:"Pengenalan gaya belajar",tl:"Tidak ada",status:"Selesai"}];
+ return S}
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const ym=k=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-k);return ymd(d).slice(0,7)};
+const dt=(m,d)=>ym(m)+'-'+String(d).padStart(2,'0');
+let absK='',absT=ymd(new Date()),jpre={};
+const stat=pel=>pel>=S.cfg.k3?'Konferensi Kasus':pel>=S.cfg.k2?'Panggilan Orang Tua / SP 1':pel>=S.cfg.k1?'Pembinaan Wali Kelas':'Aman / Teladan';
+const rekap=id=>{const r={H:0,S:0,I:0,A:0,T:0};S.absen.filter(a=>a.sid==id).forEach(a=>{if(r[a.st]!==undefined)r[a.st]++});r.tot=r.H+r.S+r.I+r.A+r.T;r.pct=r.tot?Math.round((r.H+r.T)/r.tot*100):0;return r};
+const poinOf=id=>{let pres=0,pel=0;S.pl.filter(l=>l.sid==id).forEach(l=>{if(l.j=='P')pres+=+l.poin;else pel+=+l.poin});return{pres,pel,net:pres-pel,status:stat(pel)}};
+const warn=()=>S.siswa.map(s=>{const r=rekap(s.id),p=poinOf(s.id),a=[];if(r.A>=S.cfg.alfa)a.push('Alfa '+r.A+'x');if(r.T>=S.cfg.ter)a.push('Terlambat '+r.T+'x');if(p.pel>=S.cfg.k2)a.push('Poin pelanggaran '+p.pel);return{s,a}}).filter(x=>x.a.length);
+const BC={'Aman / Teladan':'bg-green-100 text-green-800','Pembinaan Wali Kelas':'bg-amber-100 text-amber-800','Panggilan Orang Tua / SP 1':'bg-orange-100 text-orange-800','Konferensi Kasus':'bg-red-100 text-red-800'};
+const bdg=t=>`<span class="px-2 py-0.5 rounded text-xs ${BC[t]||''}">${t}</span>`;
+const disip=s=>{const r=rekap(s.id),p=poinOf(s.id);return `<table style="margin-top:5px"><tr><th colspan="8">Ringkasan Kedisiplinan & Kehadiran</th></tr><tr><th>Sakit</th><th>Izin</th><th>Alfa</th><th>Terlambat</th><th>Kehadiran</th><th>Poin Prestasi</th><th>Poin Pelanggaran</th><th>Status Pembinaan</th></tr><tr style="text-align:center"><td>${r.S}</td><td>${r.I}</td><td>${r.A}</td><td>${r.T}</td><td>${r.tot?r.pct+'%':'-'}</td><td>${p.pres}</td><td>${p.pel}</td><td><b>${p.status}</b></td></tr></table>`};
+const sumBox=s=>{const r=rekap(s.id),p=poinOf(s.id);return `<div class="card mb-3 text-sm flex flex-wrap gap-x-5 gap-y-1 items-center"><b>Referensi penilaian:</b><span>Sakit ${r.S}, Izin ${r.I}, Alfa ${r.A}, Terlambat ${r.T}</span><span>Kehadiran ${r.tot?r.pct+'%':'-'}</span><span>Poin prestasi +${p.pres}</span><span>Poin pelanggaran -${p.pel}</span>${bdg(p.status)}</div>`};
+function ensure(){if(!S.kelas)S.kelas=[];syncKelas();S.siswa.forEach(z=>{if(z.skOk===undefined)z.skOk=z.u.length>0||z.r.length>0||z.sk.some(q=>q.p!=1)});if(!S.cfg)S.cfg={k1:10,k2:30,k3:50,alfa:3,ter:3};
+ if(!S.pm)S.pm=[['P','Juara Lomba',25],['P','Juara Kelas / Prestasi Akademik',20],['P','Kedisiplinan Penuh',15],['P','Membantu Teman / Sosial',10],['P','Aktif Organisasi / Ekskul',10],['P','Menjaga Kebersihan Lingkungan',5],['L','Terlambat Masuk',5],['L','Tidak Memakai Atribut Lengkap',5],['L','Tidak Mengerjakan Tugas',5],['L','Menggunakan HP Tanpa Izin',10],['L','Meninggalkan Kelas Tanpa Izin',10],['L','Membolos',20],['L','Berkelahi',30],['L','Perundungan / Bullying',50]].map(x=>({j:x[0],n:x[1],p:x[2]}));
+ if(!S.pl)S.pl=[];if(!S.absen){S.absen=[];seedAP()}}
+function seedAP(){const Z=S.siswa;if(Z.length<5||Z[0].nama!='Ahmad Fauzi')return;
+ const ex={'4:1':'A','4:3':'A','4:6':'A','4:2':'T','4:8':'T','4:9':'S','2:2':'T','2:5':'T','2:7':'T','2:4':'A','0:5':'S','1:3':'I'},kt={S:'Surat dokter',I:'Keperluan keluarga'};
+ let n=0,k=0;while(n<10){const d=new Date();d.setDate(d.getDate()-k++);if(d.getDay()%6==0)continue;Z.slice(0,6).forEach((z,i)=>{const st=ex[i+':'+n]||'H';S.absen.push({tgl:ymd(d),sid:z.id,st,ket:kt[st]||''})});n++}
+ const L=(i,j,item,p,m,d,kron,tl)=>S.pl.push({tgl:dt(m,d),sid:Z[i].id,j,item,poin:p,kron,tl});
+ L(0,'P','Juara Lomba',25,1,12,'Juara 2 lomba pidato tingkat kota','Apresiasi saat upacara');
+ L(0,'P','Membantu Teman / Sosial',10,0,6,'Membantu teman yang sakit mengejar materi','Penghargaan lisan');
+ L(1,'P','Aktif Organisasi / Ekskul',10,0,4,'Aktif sebagai pengurus PMR','-');
+ L(2,'L','Terlambat Masuk',5,1,20,'Terlambat 15 menit','Teguran lisan');
+ L(2,'L','Tidak Memakai Atribut Lengkap',5,0,3,'Tidak memakai dasi','Teguran dan pembinaan');
+ L(2,'L','Tidak Mengerjakan Tugas',5,0,9,'Tugas IPA tidak dikumpulkan','Diberi kesempatan melengkapi');
+ L(2,'L','Menggunakan HP Tanpa Izin',10,0,10,'Bermain gawai saat pelajaran','Pembinaan wali kelas');
+ L(3,'P','Kedisiplinan Penuh',15,1,15,'Hadir tepat waktu satu bulan penuh','Apresiasi wali kelas');
+ L(4,'L','Membolos',20,1,18,'Tidak masuk kelas tanpa keterangan','Dipanggil guru BK');
+ L(4,'L','Berkelahi',30,0,7,'Perselisihan dengan teman sekelas','Mediasi dan konseling');
+ L(4,'L','Terlambat Masuk',5,0,11,'Terlambat 20 menit','Teguran lisan');
+ L(4,'P','Membantu Teman / Sosial',10,0,12,'Membantu kegiatan kerja bakti','Apresiasi');
+ L(5,'P','Juara Kelas / Prestasi Akademik',20,0,5,'Peringkat 1 ulangan harian','Apresiasi wali kelas');}
+let sK='',pkK='',selK='',kDet=null,kEdit=null;
+const kopt=k=>S.kelas.map(c=>`<option ${c.n==k?'selected':''}>${e(c.n)}</option>`).join('');
+const waliOf=z=>S.kelas.find(k=>k.n==z.kelas)?.wali||z.wali||'';
+const sasaran=j=>gs(j.sid)?.nama||(j.kls?'Kelas '+j.kls:'-');
+const gyD=z=>z.gaya?GN[Object.keys(z.gaya).sort((a,b)=>z.gaya[b]-z.gaya[a])[0]]:'-';
+function syncKelas(){S.siswa.forEach(z=>{if(z.kelas&&!S.kelas.find(k=>k.n==z.kelas))S.kelas.push({n:z.kelas,t:'',wali:z.wali||'',nip:''})})}
+const kStat=n=>{const Z=S.siswa.filter(z=>z.kelas==n),ids=new Set(Z.map(z=>z.id)),ab=S.absen.filter(a=>ids.has(a.sid)),pl=S.pl.filter(l=>ids.has(l.sid));
+ const L=Z.filter(z=>z.jk=='L').length,hd=ab.filter(a=>a.st=='H'||a.st=='T').length,sum=j=>pl.filter(l=>l.j==j).reduce((a,l)=>a+ +l.poin,0),pres=sum('P'),pel=sum('L');
+ const g={V:0,A:0,K:0};Z.forEach(z=>{if(z.gaya){g[Object.keys(z.gaya).sort((a,b)=>z.gaya[b]-z.gaya[a])[0]]++}});
+ return{Z,n:Z.length,L,P:Z.length-L,has:ab.length>0,pct:ab.length?Math.round(hd/ab.length*100):0,pres,pel,avgNet:Z.length?Math.round((pres-pel)/Z.length*10)/10:0,g,skk:A.map((_,i)=>PR.map((_,j)=>Z.filter(z=>z.sk[i].p==j).length)),goodPct:Z.length?Math.round(Z.reduce((a,z)=>a+z.sk.filter(q=>q.p<=1).length,0)/(Z.length*11)*100):0}};
+try{S=JSON.parse(localStorage.getItem('bkpro'))}catch(x){}
+if(!S||!S.siswa)seed();
+ensure();
+sel=S.siswa[0]?.id;
+const save=()=>{try{localStorage.setItem('bkpro',JSON.stringify(S))}catch(x){alert('Gagal menyimpan ke browser. Lakukan Backup JSON.')}};
+const gs=id=>S.siswa.find(s=>s.id==id);
+const opt=(x,k)=>S.siswa.filter(s=>!k||s.kelas==k).map(s=>`<option value="${s.id}" ${s.id==x?'selected':''}>${e(s.nama)} (${e(s.kelas)})</option>`).join('');
+const fld=(l,id,val,t='text')=>`<div><label class="lbl">${l}</label><input id="${id}" type="${t}" class="inp" value="${e(val)}"></div>`;
+const selS=f=>`<span class="inline-flex flex-wrap gap-2"><select class="inp" style="width:auto" onchange="selK=this.value;const L=S.siswa.filter(z=>!selK||z.kelas==selK);if(L.length&&!L.find(z=>z.id==sel))sel=L[0].id;${f}"><option value="">Semua Kelas</option>${kopt(selK)}</select><select class="inp" style="width:auto;max-width:22rem" onchange="sel=this.value;${f}">${opt(sel,selK)}</select></span>`;
+const tgl=d=>d?new Date(d).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}):'';
+
+function go(x){V=x;render()}
+function render(){
+ $('#nav').innerHTML=NAV.map(n=>`<button onclick="go('${n[0]}')" class="flex items-center gap-2 text-left whitespace-nowrap px-3 py-2 rounded-md text-sm ${V==n[0]?'bg-teal-600':'hover:bg-slate-800'}"><i data-lucide="${n[2]}" class="w-4 h-4"></i>${n[1]}</button>`).join('');
+ $('#main').innerHTML=VW[V]();if(PO[V])PO[V]();window.lucide&&lucide.createIcons();
+}
+const VW={},PO={};
+
+/* DASHBOARD */
+VW.dash=()=>{const m=ym(0),n=S.jurnal.filter(j=>j.tgl.startsWith(m)).length,open=S.jurnal.filter(j=>j.status!='Selesai'),W=warn();
+ const tot=S.absen.length,hd=S.absen.filter(a=>a.st=='H'||a.st=='T').length,pct=tot?Math.round(hd/tot*100):0,td=S.absen.filter(a=>a.tgl==ymd(new Date()));
+ const hr=td.length?['H','S','I','A','T'].map(k=>k+' '+td.filter(a=>a.st==k).length).join(', '):'belum ada data';
+ return `<h1 class="text-xl font-bold mb-3">Dashboard</h1>
+ <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
+ ${[["Jumlah Kelas",S.kelas.length,''],["Jumlah Siswa",S.siswa.length,''],["Layanan Bulan Ini",n,''],["Kehadiran Semester",pct+'%','Hari ini: '+hr],["Peringatan Dini",W.length,'Siswa melewati ambang'],["Tindak Lanjut Terbuka",open.length,'']].map(c=>`<div class="card"><div class="text-3xl font-bold ${c[0]=='Peringatan Dini'&&c[1]?'text-red-600':'text-teal-700'}">${c[1]}</div><div class="text-sm text-slate-600">${c[0]}</div><div class="text-xs text-slate-500">${c[2]}</div></div>`).join('')}</div>
+ <div class="grid md:grid-cols-3 gap-4 mb-4"><div class="card md:col-span-2"><h2 class="font-semibold mb-2">Distribusi Predikat 11 Aspek SKKPD</h2><canvas id="ch" height="130"></canvas></div>
+ <div class="card"><h2 class="font-semibold mb-2">Peringatan Dini (Early Warning)</h2>${W.length?W.map(x=>`<div class="border-b py-1.5 text-sm"><b>${e(x.s.nama)}</b> (${e(x.s.kelas)})<div class="text-red-600">${x.a.join(', ')}</div><button class="text-teal-700 text-xs" onclick="tlKons('${x.s.id}','Peringatan dini: ${x.a.join(', ')}')">Tindak Lanjuti ke Konseling</button></div>`).join(''):'<p class="text-sm text-slate-500">Tidak ada siswa yang melewati ambang batas.</p>'}</div></div>
+ <div class="card mb-4"><h2 class="font-semibold mb-2">Perbandingan Antar Kelas: Kedisiplinan & Predikat SKKPD</h2><canvas id="ch3" height="80"></canvas></div>
+ <div class="grid md:grid-cols-3 gap-4"><div class="card md:col-span-2"><h2 class="font-semibold mb-2">Tren Poin Perilaku (4 Bulan Terakhir)</h2><canvas id="ch2" height="110"></canvas></div>
+ <div class="card"><h2 class="font-semibold mb-2">Daftar Tindak Lanjut</h2>${open.length?open.map(j=>`<div class="border-b py-1.5 text-sm"><b>${e(sasaran(j))}</b> — ${e(j.jenis)}<div class="text-slate-500">${e(j.tl)} (${tgl(j.tgl)})</div></div>`).join(''):'<p class="text-sm text-slate-500">Semua tindak lanjut sudah selesai.</p>'}</div></div>`};
+PO.dash=()=>{const dk=document.documentElement.classList.contains('dark');Chart.defaults.color=dk?'#cbd5e1':'#334155';Chart.defaults.borderColor=dk?'#334155':'#e2e8f0';const c=['#0f766e','#65a30d','#d97706','#dc2626'];
+ new Chart($('#ch'),{type:'bar',data:{labels:A.map((a,i)=>(i+1)+'. '+a[0].split(' ').slice(0,2).join(' ')),datasets:PR.map((p,j)=>({label:p,backgroundColor:c[j],data:A.map((_,i)=>S.siswa.filter(s=>s.sk[i].p==j).length)}))},options:{scales:{x:{stacked:true,ticks:{font:{size:9}}},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}}}});
+ const M=[3,2,1,0].map(ym),sm=j=>M.map(m=>S.pl.filter(l=>l.j==j&&l.tgl.startsWith(m)).reduce((a,l)=>a+ +l.poin,0));
+ new Chart($('#ch2'),{type:'line',data:{labels:M,datasets:[{label:'Poin Prestasi',data:sm('P'),borderColor:'#0f766e',backgroundColor:'#0f766e'},{label:'Poin Pelanggaran',data:sm('L'),borderColor:'#dc2626',backgroundColor:'#dc2626'}]},options:{scales:{y:{beginAtZero:true}}}});
+ const KS=S.kelas.map(k=>({n:k.n,q:kStat(k.n)}));
+ new Chart($('#ch3'),{type:'bar',data:{labels:KS.map(x=>x.n),datasets:[{label:'Rata-rata Poin Prestasi',data:KS.map(x=>x.q.n?+(x.q.pres/x.q.n).toFixed(1):0),backgroundColor:'#0f766e',yAxisID:'y'},{label:'Rata-rata Poin Pelanggaran',data:KS.map(x=>x.q.n?+(x.q.pel/x.q.n).toFixed(1):0),backgroundColor:'#dc2626',yAxisID:'y'},{label:'Predikat Baik/Sangat Baik (%)',data:KS.map(x=>x.q.goodPct),backgroundColor:'#d97706',yAxisID:'y1'}]},options:{scales:{y:{beginAtZero:true,title:{display:true,text:'Poin'}},y1:{position:'right',beginAtZero:true,max:100,grid:{drawOnChartArea:false},title:{display:true,text:'%'}}}}})};
+function tlKons(sid,topik){jpre={sid,topik,tl:'Konseling lanjutan dan pemantauan',jenis:'Konseling Individu'};go('jurnal')}
+
+/* PEMETAAN KELAS */
+const chTheme=()=>{const dk=document.documentElement.classList.contains('dark');Chart.defaults.color=dk?'#cbd5e1':'#334155';Chart.defaults.borderColor=dk?'#334155':'#e2e8f0'};
+VW.kelas=()=>kDet&&S.kelas.find(k=>k.n==kDet)?kDetail(kDet):kHub();
+const kHub=()=>{const t=kEdit!=null?S.kelas[kEdit]:{};
+ return `<h1 class="text-xl font-bold mb-3">Pemetaan & Manajemen Kelas</h1>
+ <div class="card mb-3"><h2 class="font-semibold mb-2">${kEdit!=null?'Edit':'Tambah'} Kelas</h2><div class="grid grid-cols-2 md:grid-cols-4 gap-2">${fld('Nama Kelas (mis. VII-A)','kk_n',t.n||'')}${fld('Tingkat / Jenjang','kk_t',t.t||'')}${fld('Wali Kelas','kk_w',t.wali||'')}${fld('NIP Wali Kelas','kk_nip',t.nip||'')}</div>
+ <div class="mt-3 flex gap-2"><button class="btn" onclick="svK()">${kEdit!=null?'Update':'Tambah'} Kelas</button>${kEdit!=null?'<button class="btn2" onclick="kEdit=null;render()">Batal</button>':''}</div></div>
+ <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-3">${S.kelas.map((k,i)=>{const q=kStat(k.n);return `<div class="card"><div class="flex justify-between"><div><div class="text-lg font-bold">${e(k.n)}</div><div class="text-xs text-slate-500">Tingkat ${e(k.t||'-')}</div></div><div class="text-xs"><button class="text-teal-700 mr-2" onclick="kEdit=${i};render()">Edit</button><button class="text-red-600" onclick="delK(${i})">Hapus</button></div></div>
+ <div class="text-sm mt-2">Wali Kelas: <b>${e(k.wali||'-')}</b>${k.nip?`<div class="text-xs text-slate-500">NIP. ${e(k.nip)}</div>`:''}</div>
+ <div class="grid grid-cols-2 gap-2 mt-3 text-sm"><div>Jumlah Siswa<div class="font-bold">${q.n} (L ${q.L} / P ${q.P})</div></div><div>Kehadiran Kelas<div class="font-bold">${q.has?q.pct+'%':'-'}</div></div><div>Poin Prestasi<div class="font-bold text-green-600">+${q.pres}</div></div><div>Poin Pelanggaran<div class="font-bold text-red-600">-${q.pel}</div></div></div>
+ <button class="btn w-full mt-3" onclick="kDet='${e(k.n)}';render()">Buka Peta Kelas</button></div>`}).join('')||'<p class="text-sm text-slate-500">Belum ada kelas. Tambahkan kelas pertama di atas.</p>'}</div>`};
+const kDetail=n=>{const k=S.kelas.find(x=>x.n==n),q=kStat(n),gd=Object.keys(q.g).sort((a,b)=>q.g[b]-q.g[a])[0],gk=q.g[gd]?GN[gd]+' ('+q.g[gd]+' siswa)':'Belum ada data';
+ return `<div class="flex flex-wrap gap-2 items-center mb-3"><button class="btn2" onclick="kDet=null;render()">Kembali</button><h1 class="text-xl font-bold mr-auto">Peta Profil Kelas ${e(n)}</h1><button class="btn" onclick="printKelas('${e(n)}')">Cetak Rekap Profil Kelas</button><button class="btn2" onclick="exportXls('${e(n)}')">Export Excel Khusus Kelas Ini</button></div>
+ <p class="text-sm mb-3">Wali Kelas: <b>${e(k.wali||'-')}</b>${k.nip?' (NIP. '+e(k.nip)+')':''}</p>
+ <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">${[['Komposisi Gender','L '+q.L+' / P '+q.P],['Dominasi Gaya Belajar',gk],['Rata-rata Skor Perilaku',q.avgNet],['Kehadiran Kelas',q.has?q.pct+'%':'-']].map(c=>`<div class="card"><div class="text-lg font-bold text-teal-700">${c[1]}</div><div class="text-sm text-slate-600">${c[0]}</div></div>`).join('')}</div>
+ <div class="grid md:grid-cols-3 gap-4 mb-4"><div class="card md:col-span-2"><h2 class="font-semibold mb-2">Distribusi 11 Aspek SKKPD Kelas Ini</h2><canvas id="kc1" height="130"></canvas></div><div class="card"><h2 class="font-semibold mb-2">Sebaran Gaya Belajar</h2><canvas id="kc2"></canvas></div></div>
+ <div class="card overflow-x-auto"><table class="w-full text-sm"><tr class="text-left border-b"><th class="p-1">Nama</th><th>L/P</th><th>S/I/A</th><th>Poin (+/-)</th><th>Status Pembinaan</th><th>SKKPD</th><th>Aksi Cepat</th></tr>
+ ${q.Z.map(z=>{const r=rekap(z.id),p=poinOf(z.id);return `<tr class="border-b"><td class="p-1">${e(z.nama)}</td><td>${z.jk}</td><td>${r.S}/${r.I}/${r.A}</td><td>+${p.pres} / -${p.pel}</td><td>${bdg(p.status)}</td><td>${z.skOk?'<span class="text-green-600">Sudah diisi</span>':'<span class="text-amber-600">Belum diisi</span>'}</td><td class="whitespace-nowrap"><button class="text-teal-700 mr-2" onclick="goTo('${z.id}','skkpd')">Input SKKPD</button><button class="text-teal-700 mr-2" onclick="goTo('${z.id}','poin')">Catat Poin</button><button class="text-teal-700" onclick="goTo('${z.id}','rep')">Lihat E-Report</button></td></tr>`}).join('')||'<tr><td class="p-2 text-slate-500" colspan="7">Belum ada siswa di kelas ini.</td></tr>'}</table></div>`};
+PO.kelas=()=>{if(!kDet||!S.kelas.find(k=>k.n==kDet))return;chTheme();const q=kStat(kDet),c=['#0f766e','#65a30d','#d97706','#dc2626'];
+ new Chart($('#kc1'),{type:'bar',data:{labels:A.map((a,i)=>(i+1)+'. '+a[0].split(' ').slice(0,2).join(' ')),datasets:PR.map((p,j)=>({label:p,backgroundColor:c[j],data:A.map((_,i)=>q.skk[i][j])}))},options:{scales:{x:{stacked:true,ticks:{font:{size:9}}},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}}}});
+ new Chart($('#kc2'),{type:'doughnut',data:{labels:['Visual','Auditori','Kinestetik'],datasets:[{data:[q.g.V,q.g.A,q.g.K],backgroundColor:['#0f766e','#d97706','#6366f1']}]}})};
+function svK(){const n=v('kk_n').replace(/['"\\<>&]/g,'').trim();if(!n)return alert('Nama kelas wajib diisi.');const o={n,t:v('kk_t'),wali:v('kk_w'),nip:v('kk_nip')};
+ if(kEdit!=null){const old=S.kelas[kEdit].n;if(n!=old&&S.kelas.some(k=>k.n==n))return alert('Nama kelas sudah ada.');S.kelas[kEdit]=o;if(n!=old){S.siswa.forEach(z=>{if(z.kelas==old)z.kelas=n});S.jurnal.forEach(j=>{if(j.kls==old)j.kls=n});if(selK==old)selK=n}kEdit=null}
+ else{if(S.kelas.some(k=>k.n==n))return alert('Nama kelas sudah ada.');S.kelas.push(o)}save();render()}
+function delK(i){const k=S.kelas[i];if(S.siswa.some(z=>z.kelas==k.n))return alert('Kelas masih memiliki siswa. Pindahkan atau hapus siswa terlebih dahulu.');if(confirm('Hapus kelas '+k.n+'?')){S.kelas.splice(i,1);save();render()}}
+function goTo(id,w){sel=id;selK=gs(id).kelas;pkK=selK;go(w)}
+function printKelas(n){const k=S.kelas.find(x=>x.n==n),q=kStat(n);
+ $('#print').innerHTML=`<div class="sheet">${kop()}<h3 style="text-align:center;font-weight:bold;font-size:12px;margin:4px 0">REKAP PROFIL KELAS ${e(n)}</h3>
+ <table style="border:0;margin-bottom:4px"><tr><td style="border:0">Wali Kelas: <b>${e(k.wali)}</b><br>Semester / TA: ${e(S.sch.smt)} / ${e(S.sch.ta)}</td><td style="border:0">Jumlah Siswa: ${q.n} (L ${q.L} / P ${q.P})<br>Kehadiran Kelas: ${q.has?q.pct+'%':'-'}</td><td style="border:0">Poin Prestasi: ${q.pres}<br>Poin Pelanggaran: ${q.pel}</td></tr></table>
+ <table><tr><th>No</th><th>Nama</th><th>L/P</th><th>S</th><th>I</th><th>A</th><th>T</th><th>Hadir</th><th>Prestasi</th><th>Pelanggaran</th><th>Status Pembinaan</th><th>Gaya Belajar</th><th>SKKPD</th></tr>
+ ${q.Z.map((z,i)=>{const r=rekap(z.id),p=poinOf(z.id);return `<tr style="text-align:center"><td>${i+1}</td><td style="text-align:left">${e(z.nama)}</td><td>${z.jk}</td><td>${r.S}</td><td>${r.I}</td><td>${r.A}</td><td>${r.T}</td><td>${r.tot?r.pct+'%':'-'}</td><td>${p.pres}</td><td>${p.pel}</td><td>${p.status}</td><td>${gyD(z)}</td><td>${z.skOk?'Sudah':'Belum'}</td></tr>`}).join('')}</table>
+ ${ttd('Wali Kelas',k.wali,'Guru BK',S.sch.gbk,'')}${FOOT}</div>`;setTimeout(()=>print(),300)}
+function printKls(){const kk=selK||gs(sel)?.kelas,L=S.siswa.filter(z=>z.kelas==kk);if(!L.length)return alert('Tidak ada siswa di kelas ini.');$('#print').innerHTML=L.map((z,i)=>repHTML(z,'qk'+i)).join('');L.forEach((z,i)=>mkqr('qk'+i,z));setTimeout(()=>print(),600)}
+function exportXls(kf){kf=kf||'';if(!S.siswa.length)return alert('Belum ada data siswa.');if(!kf)return exportXls0('');const ids=new Set(S.siswa.filter(z=>z.kelas==kf).map(z=>z.id));if(!ids.size)return alert('Kelas ini belum memiliki siswa.');
+ const bak=S;S={...bak,siswa:bak.siswa.filter(z=>ids.has(z.id)),absen:bak.absen.filter(a=>ids.has(a.sid)),pl:bak.pl.filter(l=>ids.has(l.sid)),jurnal:bak.jurnal.filter(j=>ids.has(j.sid)||j.kls==kf),kelas:bak.kelas.filter(k=>k.n==kf)};try{exportXls0(kf)}finally{S=bak}}
+
+/* ABSENSI */
+VW.absen=()=>{const ks=S.kelas.map(k=>k.n);if(!ks.includes(absK))absK=ks[0]||'';
+ const L=S.siswa.filter(x=>x.kelas==absK),ST=[['H','Hadir'],['S','Sakit'],['I','Izin'],['A','Alfa'],['T','Terlambat']];
+ return `<h1 class="text-xl font-bold mb-3">Absensi & Rekap Kehadiran</h1>
+ <div class="card mb-3"><div class="flex flex-wrap gap-2 items-end mb-3"><div><label class="lbl">Kelas</label><select class="inp" onchange="absK=this.value;render()">${ks.map(k=>`<option ${k==absK?'selected':''}>${e(k)}</option>`).join('')}</select></div>
+ <div><label class="lbl">Tanggal</label><input type="date" class="inp" value="${absT}" onchange="absT=this.value;render()"></div><button class="btn" onclick="svAbs()">Simpan Absensi</button><button class="btn2" onclick="document.querySelectorAll('input[value=H]').forEach(r=>r.checked=true)">Tandai Semua Hadir</button></div>
+ <div class="overflow-x-auto"><table class="w-full text-sm"><tr class="text-left border-b"><th class="p-1">Nama</th>${ST.map(x=>`<th class="px-2" title="${x[1]}">${x[0]}</th>`).join('')}<th>Keterangan</th></tr>
+ ${L.map(x=>{const a=S.absen.find(q=>q.tgl==absT&&q.sid==x.id)||{st:'H',ket:''};return `<tr class="border-b"><td class="p-1">${e(x.nama)}</td>${ST.map(t=>`<td class="px-2"><input type="radio" name="st_${x.id}" value="${t[0]}" ${a.st==t[0]?'checked':''}></td>`).join('')}<td><input id="kt_${x.id}" class="inp" value="${e(a.ket)}"></td></tr>`}).join('')}</table></div>
+ <p class="text-xs text-slate-500 mt-2">H Hadir, S Sakit, I Izin, A Alfa (tanpa keterangan), T Terlambat. Terlambat dihitung hadir pada persentase kehadiran.</p></div>
+ <div class="card overflow-x-auto"><h2 class="font-semibold mb-2">Rekap Kehadiran Semester ${e(S.sch.smt)} ${e(S.sch.ta)}</h2><table class="w-full text-sm"><tr class="text-left border-b"><th class="p-1">Nama</th><th>Kelas</th><th>S</th><th>I</th><th>A</th><th>T</th><th>Kehadiran</th><th></th></tr>
+ ${S.siswa.filter(x=>x.kelas==absK).map(x=>{const r=rekap(x.id),fl=r.A>=S.cfg.alfa||r.T>=S.cfg.ter;return `<tr class="border-b"><td class="p-1">${e(x.nama)}</td><td>${e(x.kelas)}</td><td>${r.S}</td><td>${r.I}</td><td class="${r.A>=S.cfg.alfa?'text-red-600 font-bold':''}">${r.A}</td><td class="${r.T>=S.cfg.ter?'text-red-600 font-bold':''}">${r.T}</td><td>${r.tot?r.pct+'%':'-'}</td><td>${fl?`<button class="text-teal-700" onclick="tlKons('${x.id}','Kehadiran: Alfa ${r.A}x, Terlambat ${r.T}x')">Tindak Lanjuti ke Konseling</button>`:''}</td></tr>`}).join('')}</table></div>`};
+function svAbs(){S.siswa.filter(x=>x.kelas==absK).forEach(x=>{const c=document.querySelector(`input[name=st_${x.id}]:checked`);if(!c)return;const o={tgl:absT,sid:x.id,st:c.value,ket:v('kt_'+x.id)},i=S.absen.findIndex(q=>q.tgl==absT&&q.sid==x.id);if(i>=0)S.absen[i]=o;else S.absen.push(o)});save();render();alert('Absensi tersimpan.')}
+
+/* POIN PERILAKU */
+VW.poin=()=>{const K=S.cfg;
+ return `<h1 class="text-xl font-bold mb-3">Poin Perilaku & Tata Tertib</h1>
+ <div class="card mb-3"><h2 class="font-semibold mb-2">Catat Kejadian Perilaku</h2><div class="grid md:grid-cols-3 gap-2">
+ <div><label class="lbl">Kelas</label><select id="pm_k" class="inp" onchange="$('#pm_sid').innerHTML=opt(null,this.value)"><option value="">Semua Kelas</option>${kopt(pkK)}</select></div><div><label class="lbl">Siswa</label><select id="pm_sid" class="inp">${opt(sel,pkK)}</select></div>${fld('Tanggal','pm_tgl',ymd(new Date()),'date')}
+ <div><label class="lbl">Jenis</label><select id="pm_j" class="inp" onchange="pmFill()"><option value="P">Prestasi / Penghargaan (+)</option><option value="L">Pelanggaran (-)</option></select></div>
+ <div><label class="lbl">Item Kategori</label><select id="pm_item" class="inp" onchange="pmPts()"></select></div>${fld('Poin (otomatis, bisa diubah)','pm_p','','number')}${fld('Kronologi','pm_kr','')}${fld('Tindak Lanjut / Pembinaan','pm_tl','')}</div>
+ <button class="btn mt-3" onclick="svPl()">Simpan Kejadian</button></div>
+ <div class="card mb-3 overflow-x-auto"><h2 class="font-semibold mb-2">Kartu Skor & Status Pembinaan</h2><select class="inp mb-2" style="width:auto" onchange="pkK=this.value;render()"><option value="">Semua Kelas</option>${kopt(pkK)}</select><table class="w-full text-sm"><tr class="text-left border-b"><th class="p-1">Nama</th><th>Kelas</th><th>Prestasi</th><th>Pelanggaran</th><th>Skor Akhir</th><th>Status</th><th></th></tr>
+ ${S.siswa.filter(x=>!pkK||x.kelas==pkK).map(x=>{const p=poinOf(x.id);return `<tr class="border-b"><td class="p-1">${e(x.nama)}</td><td>${e(x.kelas)}</td><td>+${p.pres}</td><td>-${p.pel}</td><td><b>${p.net}</b></td><td>${bdg(p.status)}</td><td>${p.pel>=K.k2?`<button class="text-teal-700" onclick="tlKons('${x.id}','Pembinaan perilaku: poin pelanggaran ${p.pel}')">Tindak Lanjuti</button>`:''}</td></tr>`}).join('')}</table></div>
+ <div class="card mb-3 overflow-x-auto"><h2 class="font-semibold mb-2">Log Kejadian</h2><table class="w-full text-sm"><tr class="text-left border-b"><th class="p-1">Tanggal</th><th>Siswa</th><th>Kategori</th><th>Poin</th><th>Kronologi</th><th>Pembinaan</th><th></th></tr>
+ ${[...S.pl].sort((a,b)=>a.tgl<b.tgl?1:-1).map(l=>`<tr class="border-b"><td class="p-1">${tgl(l.tgl)}</td><td>${e(gs(l.sid)?.nama||'-')}</td><td>${e(l.item)}</td><td class="${l.j=='P'?'text-green-600':'text-red-600'} font-bold">${l.j=='P'?'+':'-'}${l.poin}</td><td>${e(l.kron)}</td><td>${e(l.tl)}</td><td><button class="text-red-600" onclick="delPl(${S.pl.indexOf(l)})">Hapus</button></td></tr>`).join('')}</table></div>
+ <div class="grid md:grid-cols-2 gap-3"><div class="card"><h2 class="font-semibold mb-2">Master Kategori Poin</h2>
+ ${S.pm.map((x,i)=>`<div class="flex justify-between text-sm border-b py-1"><span>${x.j=='P'?'(+)':'(-)'} ${e(x.n)}</span><span>${x.p} <button class="text-red-600 ml-2" onclick="S.pm.splice(${i},1);save();render()">Hapus</button></span></div>`).join('')}
+ <div class="grid grid-cols-3 gap-2 mt-3"><select id="m_j" class="inp"><option value="P">Prestasi</option><option value="L">Pelanggaran</option></select><input id="m_n" class="inp" placeholder="Nama item"><input id="m_p" type="number" class="inp" placeholder="Poin"></div><button class="btn mt-2" onclick="addPm()">Tambah Item</button></div>
+ <div class="card"><h2 class="font-semibold mb-2">Ambang Batas Pembinaan & Peringatan Dini</h2><div class="grid grid-cols-2 gap-2">${fld('Pembinaan Wali Kelas (poin pelanggaran)','c_k1',K.k1,'number')}${fld('Panggilan Orang Tua / SP 1','c_k2',K.k2,'number')}${fld('Konferensi Kasus','c_k3',K.k3,'number')}${fld('Peringatan: jumlah Alfa','c_alfa',K.alfa,'number')}${fld('Peringatan: jumlah Terlambat','c_ter',K.ter,'number')}</div><button class="btn mt-3" onclick="svCfg()">Simpan Ambang</button></div></div>`};
+PO.poin=()=>pmFill();
+function pmFill(){const j=v('pm_j');$('#pm_item').innerHTML=S.pm.filter(x=>x.j==j).map(x=>`<option data-p="${x.p}">${e(x.n)}</option>`).join('');pmPts()}
+function pmPts(){const o=$('#pm_item').selectedOptions[0];$('#pm_p').value=o?o.dataset.p:''}
+function svPl(){if(!v('pm_item'))return alert('Pilih item kategori.');S.pl.push({tgl:v('pm_tgl'),sid:v('pm_sid'),j:v('pm_j'),item:v('pm_item'),poin:Math.abs(+v('pm_p')||0),kron:v('pm_kr'),tl:v('pm_tl')});save();render()}
+function delPl(i){if(confirm('Hapus catatan ini?')){S.pl.splice(i,1);save();render()}}
+function addPm(){if(!v('m_n'))return alert('Nama item wajib diisi.');S.pm.push({j:v('m_j'),n:v('m_n'),p:Math.abs(+v('m_p')||0)});save();render()}
+function svCfg(){['k1','k2','k3','alfa','ter'].forEach(k=>S.cfg[k]=+v('c_'+k)||0);save();render()}
+
+VW.about=()=>`<h1 class="text-xl font-bold mb-3">Tentang Sistem</h1><div class="card max-w-2xl space-y-3 text-sm"><div><div class="text-lg font-semibold">SmartBK Digital</div><div>Sistem Manajemen Pemetaan Kelas, Asesmen, Kedisiplinan, & E-Report Bimbingan Konseling Terpadu</div></div><div class="border-t pt-3"><b>${OWN}</b></div><div>Semua data tersimpan di browser perangkat ini (localStorage). Gunakan Backup Data (JSON) secara berkala dan sebelum berganti perangkat.</div><div>Fitur: dashboard dengan peringatan dini, pemetaan kelas (Class Hub), absensi dan rekap kehadiran, poin perilaku dan tata tertib, data siswa dengan import Excel, jurnal layanan dan RPL, asesmen gaya belajar dan minat bakat, input 11 aspek SKKPD, bank deskripsi, E-Report A4 dengan QR Code, serta export Excel 9 sheet.</div><div class="text-slate-500">Hak cipta dan kepemilikan sistem berada pada pemilik sebagaimana tercantum di atas.</div></div>`;
+/* SEKOLAH */
+VW.sekolah=()=>{const k=S.sch,F=[["Nama Sekolah","nama"],["NPSN","npsn"],["Alamat","alamat"],["Kepala Sekolah","kepsek"],["NIP Kepala Sekolah","nipKepsek"],["Guru BK","gbk"],["NIP Guru BK","nipGbk"],["Semester","smt"],["Tahun Ajaran","ta"],["Kota Tanda Tangan","kota"]];
+ return `<h1 class="text-xl font-bold mb-3">Identitas Sekolah</h1><div class="card grid md:grid-cols-2 gap-3">${F.map(f=>fld(f[0],'k_'+f[1],k[f[1]])).join('')}${fld('Tanggal Tanda Tangan','k_tgl',k.tgl,'date')}
+ <div class="md:col-span-2"><button class="btn" onclick="svSch()">Simpan Identitas</button></div></div>`};
+function svSch(){['nama','npsn','alamat','kepsek','nipKepsek','gbk','nipGbk','smt','ta','kota','tgl'].forEach(f=>S.sch[f]=v('k_'+f));save();alert('Identitas sekolah tersimpan.')}
+
+/* SISWA */
+VW.siswa=()=>{const t=editId?gs(editId):{};
+ return `<h1 class="text-xl font-bold mb-3">Data Siswa</h1>
+ <div class="card mb-3"><div class="grid grid-cols-2 md:grid-cols-4 gap-2">${fld('NISN','f_nisn',t.nisn||'')}${fld('Nama','f_nama',t.nama||'')}
+ <div><label class="lbl">Kelas (dari Master Kelas)</label><select id="f_kelas" class="inp">${S.kelas.map(k=>`<option ${k.n==(t.kelas||sK)?'selected':''}>${e(k.n)}</option>`).join('')}</select></div>
+ <div><label class="lbl">Gender</label><select id="f_jk" class="inp"><option ${t.jk=='L'?'selected':''}>L</option><option ${t.jk=='P'?'selected':''}>P</option></select></div></div>
+ <div class="flex flex-wrap gap-2 mt-3"><button class="btn" onclick="svS()">${editId?'Update':'Tambah'} Siswa</button>${editId?'<button class="btn2" onclick="editId=null;render()">Batal</button>':''}
+ <label class="btn2 cursor-pointer">Import Excel<input type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="imp(event)"></label><button class="btn2" onclick="tpl()">Download Template Excel</button></div></div>
+ <div class="card overflow-x-auto"><div class="mb-2 flex items-center gap-2"><label class="lbl mb-0">Filter Kelas</label><select class="inp" style="width:auto" onchange="sK=this.value;render()"><option value="">Semua Kelas</option>${kopt(sK)}</select></div>
+ <table class="w-full text-sm"><tr class="text-left border-b"><th class="p-1">NISN</th><th>Nama</th><th>Kelas</th><th>L/P</th><th>Wali Kelas</th><th></th></tr>
+ ${S.siswa.filter(z=>!sK||z.kelas==sK).map(z=>`<tr class="border-b"><td class="p-1">${e(z.nisn)}</td><td>${e(z.nama)}</td><td>${e(z.kelas)}</td><td>${z.jk}</td><td>${e(waliOf(z))}</td><td class="text-right whitespace-nowrap"><button class="text-teal-700 mr-2" onclick="editId='${z.id}';render()">Edit</button><button class="text-red-600" onclick="delS('${z.id}')">Hapus</button></td></tr>`).join('')}</table></div>`};
+function svS(){const o={nisn:v('f_nisn'),nama:v('f_nama'),kelas:v('f_kelas'),jk:v('f_jk')};if(!o.nama)return alert('Nama siswa wajib diisi.');if(!o.kelas)return alert('Tambahkan kelas terlebih dahulu di menu Pemetaan Kelas.');
+ if(editId)Object.assign(gs(editId),o);else{const z=newS(o);S.siswa.push(z);sel=z.id}editId=null;save();render()}
+function delS(id){if(!confirm('Hapus siswa ini beserta datanya?'))return;S.siswa=S.siswa.filter(s=>s.id!=id);S.jurnal=S.jurnal.filter(j=>j.sid!=id);if(sel==id)sel=S.siswa[0]?.id;save();render()}
+function tpl(){const ws=XLSX.utils.json_to_sheet([{NISN:'0051234567',Nama:'Contoh Siswa',Kelas:'VII-A',Gender:'L'}]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Template_Siswa');XLSX.writeFile(wb,'Template_Siswa_SmartBK.xlsx')}
+function imp(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=x=>{try{const wb=XLSX.read(x.target.result,{type:'array'});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+ rows.forEach(o=>{if(o.Nama)S.siswa.push(newS({nisn:String(o.NISN||''),nama:String(o.Nama),kelas:String(o.Kelas||''),jk:String(o.Gender||'L').toUpperCase().startsWith('P')?'P':'L',wali:String(o['Wali Kelas']||'')}))});
+ syncKelas();save();render();alert(rows.length+' baris diimpor.')}catch(er){alert('File tidak dapat dibaca.')}};r.readAsArrayBuffer(f)}
+
+/* JURNAL */
+VW.jurnal=()=>{const jp=jpre;jpre={};return `<h1 class="text-xl font-bold mb-3">Jurnal Layanan BK</h1>
+ <div class="card mb-3"><div class="grid md:grid-cols-3 gap-2">${fld('Tanggal','j_tgl',new Date().toISOString().slice(0,10),'date')}
+ <div><label class="lbl">Siswa</label><select id="j_sid" class="inp">${opt(jp.sid||sel)}</select></div>
+ <div><label class="lbl">Jenis Layanan</label><select id="j_jenis" class="inp">${JN.map(j=>`<option ${j==jp.jenis?'selected':''}>${j}</option>`).join('')}</select></div>
+ ${fld('Topik / Permasalahan','j_topik',jp.topik||'')}${fld('Tindak Lanjut','j_tl',jp.tl||'')}
+ <div><label class="lbl">Kelas Sasaran (kosongkan untuk siswa individu)</label><select id="j_kls" class="inp"><option value="">-</option>${kopt(jp.kls||'')}</select></div><div><label class="lbl">Status</label><select id="j_status" class="inp"><option>Proses</option><option>Selesai</option><option>Dipantau</option></select></div></div>
+ <button class="btn mt-3" onclick="svJ()">Simpan Catatan</button></div>
+ <div class="card overflow-x-auto"><table class="w-full text-sm"><tr class="text-left border-b"><th class="p-1">Tanggal</th><th>Siswa</th><th>Layanan</th><th>Topik</th><th>Tindak Lanjut</th><th>Status</th><th></th></tr>
+ ${S.jurnal.map((j,i)=>`<tr class="border-b"><td class="p-1">${tgl(j.tgl)}</td><td>${e(sasaran(j))}</td><td>${e(j.jenis)}</td><td>${e(j.topik)}</td><td>${e(j.tl)}</td><td>${e(j.status)}</td><td class="whitespace-nowrap"><button class="text-teal-700 mr-2" onclick="rpl(${i})">Cetak RPL</button><button class="text-red-600" onclick="S.jurnal.splice(${i},1);save();render()">Hapus</button></td></tr>`).join('')}</table></div>`}
+function svJ(){if(!v('j_topik'))return alert('Topik wajib diisi.');S.jurnal.push({tgl:v('j_tgl'),sid:v('j_kls')?'':v('j_sid'),kls:v('j_kls'),jenis:v('j_jenis'),topik:v('j_topik'),tl:v('j_tl'),status:v('j_status')});save();render()}
+const kop=()=>`<div style="text-align:center;border-bottom:3px double #000;padding-bottom:4px;margin-bottom:6px"><b style="font-size:14px">${e(S.sch.nama).toUpperCase()}</b><br>NPSN: ${e(S.sch.npsn)}<br>${e(S.sch.alamat)}</div>`;
+const ttd=(a,an,b,bn,c)=>`<table style="margin-top:10px;border:0"><tr>${[[a,an],[b,bn],[c,'']].map((x,i)=>x[0]?`<td style="border:0;text-align:center;width:33%">${i==1?`${e(S.sch.kota)}, ${tgl(S.sch.tgl)}<br>`:'<br>'}${x[0]}<br><br><br><br><u><b>${e(x[1]||'................')}</b></u>${x[2]?'<br>NIP. '+e(x[2]):''}</td>`:'').join('')}</tr></table>`;
+function rpl(i){const j=S.jurnal[i],s=gs(j.sid)||{};
+ const R=[["Satuan Pendidikan",S.sch.nama],["Semester / Tahun Ajaran",S.sch.smt+" / "+S.sch.ta],["Komponen Layanan",j.jenis],["Sasaran Layanan",s.nama?s.nama+" (Kelas "+s.kelas+")":(j.kls?"Seluruh siswa kelas "+j.kls:'-')],["Tanggal Pelaksanaan",tgl(j.tgl)],["Topik / Permasalahan",j.topik],["Tujuan Layanan","Peserta didik memahami permasalahannya dan mampu mengambil langkah penyelesaian secara mandiri dan bertanggung jawab."],["Kegiatan","1) Pembukaan dan membangun hubungan; 2) Eksplorasi masalah; 3) Pembahasan alternatif solusi; 4) Kesepakatan tindakan; 5) Penutup."],["Tindak Lanjut",j.tl],["Evaluasi","Proses: keaktifan dan keterbukaan siswa. Hasil: pemahaman dan komitmen tindakan. Jangka panjang: perubahan perilaku."],["Status",j.status]];
+ $('#print').innerHTML=`<div class="sheet">${kop()}<h3 style="text-align:center;font-weight:bold;margin:6px 0">RENCANA PELAKSANAAN LAYANAN (RPL) BIMBINGAN DAN KONSELING</h3><table>${R.map(r=>`<tr><td style="width:30%"><b>${r[0]}</b></td><td>${e(r[1])}</td></tr>`).join('')}</table>${ttd('Mengetahui,<br>Kepala Sekolah',S.sch.kepsek,'Guru BK',S.sch.gbk,'')}${FOOT}</div>`.replace('<td style="border:0;text-align:center;width:33%"><br>','<td style="border:0;text-align:center;width:50%"><br>');
+ setTimeout(()=>print(),200)}
+
+/* ASESMEN */
+VW.ases=()=>{const s=gs(sel);if(!s)return'<p>Tambahkan siswa terlebih dahulu.</p>';
+ const bar=(o,N)=>Object.keys(N).map(k=>`<div class="text-sm flex items-center gap-2"><span class="w-28">${N[k]}</span><div class="bg-teal-600 h-3 rounded" style="width:${(o[k]||0)*40}px"></div><span>${o[k]||0}</span></div>`).join('');
+ const dom=o=>Object.keys(o).sort((a,b)=>o[b]-o[a])[0];
+ return `<h1 class="text-xl font-bold mb-3">Asesmen Siswa</h1><div class="mb-3">${selS('render()')}</div>
+ <div class="grid md:grid-cols-2 gap-4"><div class="card"><h2 class="font-semibold mb-2">Gaya Belajar</h2>${GQ.map((q,i)=>`<label class="flex gap-2 text-sm py-0.5"><input type="checkbox" class="g" data-t="${q[0]}">${q[1]}</label>`).join('')}<button class="btn mt-2" onclick="svA('g')">Simpan Hasil</button>
+ ${s.gaya?`<div class="mt-3 border-t pt-2"><b>Hasil tersimpan: dominan ${GN[dom(s.gaya)]}</b>${bar(s.gaya,GN)}</div>`:''}</div>
+ <div class="card"><h2 class="font-semibold mb-2">Minat Bakat (RIASEC)</h2>${MQ.map(q=>`<label class="flex gap-2 text-sm py-0.5"><input type="checkbox" class="m" data-t="${q[0]}">${q[1]}</label>`).join('')}<button class="btn mt-2" onclick="svA('m')">Simpan Hasil</button>
+ ${s.minat?`<div class="mt-3 border-t pt-2"><b>Hasil tersimpan: dominan ${MN[dom(s.minat)]}</b>${bar(s.minat,MN)}</div>`:''}</div></div>`};
+function svA(t){const o=t=='g'?{V:0,A:0,K:0}:{R:0,I:0,A:0,S:0,E:0,C:0};document.querySelectorAll('.'+t+':checked').forEach(c=>o[c.dataset.t]++);gs(sel)[t=='g'?'gaya':'minat']=o;save();render()}
+
+/* SKKPD */
+VW.skkpd=()=>{const s=gs(sel);if(!s)return'<p>Tambahkan siswa terlebih dahulu.</p>';
+ return `<h1 class="text-xl font-bold mb-3">Input Perkembangan 11 Aspek SKKPD</h1><div class="mb-3">${selS('render()')}</div>${sumBox(s)}
+ <div class="space-y-2">${A.map((a,i)=>`<div class="card"><div class="grid md:grid-cols-4 gap-2 items-start"><div class="font-medium text-sm">${i+1}. ${a[0]}<select id="p${i}" class="inp mt-1" onchange="$('#d${i}').value=S.bank.desc[${i}][this.value]">${PR.map((p,j)=>`<option value="${j}" ${s.sk[i].p==j?'selected':''}>${p}</option>`).join('')}</select></div>
+ <textarea id="d${i}" rows="3" class="inp md:col-span-3">${e(s.sk[i].d)}</textarea></div></div>`).join('')}</div>
+ <div class="grid md:grid-cols-2 gap-3 mt-3"><div class="card"><h2 class="font-semibold mb-1">Keunggulan Siswa (maks. 3)</h2>${S.bank.unggul.map((t,i)=>`<label class="flex gap-2 text-sm"><input type="checkbox" class="u" value="${i}" ${s.u.includes(i)?'checked':''} onchange="lim(this,'u')">${e(t)}</label>`).join('')}</div>
+ <div class="card"><h2 class="font-semibold mb-1">Rekomendasi Orang Tua (maks. 3)</h2>${S.bank.rek.map((t,i)=>`<label class="flex gap-2 text-sm"><input type="checkbox" class="r" value="${i}" ${s.r.includes(i)?'checked':''} onchange="lim(this,'r')">${e(t)}</label>`).join('')}</div></div>
+ <button class="btn mt-3" onclick="svSk()">Simpan Perkembangan</button> <button class="btn2" onclick="go('rep')">Lihat E-Report</button>`};
+function lim(el,c){if(document.querySelectorAll('.'+c+':checked').length>3){el.checked=false;alert('Maksimal 3 pilihan.')}}
+function svSk(){const s=gs(sel);s.sk=A.map((_,i)=>({p:+v('p'+i),d:v('d'+i)}));s.u=[...document.querySelectorAll('.u:checked')].map(c=>+c.value);s.r=[...document.querySelectorAll('.r:checked')].map(c=>+c.value);s.skOk=true;save();alert('Perkembangan '+s.nama+' tersimpan.')}
+
+/* BANK */
+VW.bank=()=>`<h1 class="text-xl font-bold mb-3">Bank Deskripsi & Pilihan</h1>
+ ${A.map((a,i)=>`<div class="card mb-2"><div class="font-medium text-sm mb-1">${i+1}. ${a[0]}</div><div class="grid md:grid-cols-2 gap-2">${PR.map((p,j)=>`<div><label class="lbl">${p}</label><textarea id="b${i}_${j}" rows="3" class="inp">${e(S.bank.desc[i][j])}</textarea></div>`).join('')}</div></div>`).join('')}
+ <div class="grid md:grid-cols-2 gap-3"><div class="card"><label class="lbl">Daftar Keunggulan Siswa (satu per baris)</label><textarea id="bu" rows="10" class="inp">${e(S.bank.unggul.join('\n'))}</textarea></div>
+ <div class="card"><label class="lbl">Daftar Rekomendasi Orang Tua (satu per baris)</label><textarea id="br" rows="10" class="inp">${e(S.bank.rek.join('\n'))}</textarea></div></div>
+ <button class="btn mt-3" onclick="svB()">Simpan Bank Deskripsi</button>`;
+function svB(){S.bank.desc=A.map((_,i)=>PR.map((_,j)=>v(`b${i}_${j}`)));const L=x=>v(x).split('\n').map(t=>t.trim()).filter(Boolean);S.bank.unggul=L('bu');S.bank.rek=L('br');S.siswa.forEach(s=>{s.u=s.u.filter(i=>i<S.bank.unggul.length);s.r=s.r.filter(i=>i<S.bank.rek.length)});save();alert('Bank deskripsi tersimpan.')}
+
+/* E-REPORT */
+function repHTML(s,q){const k=S.sch;
+ return `<div class="sheet">${kop()}<h3 style="text-align:center;font-weight:bold;font-size:12px;margin:4px 0">LAPORAN PERKEMBANGAN BIMBINGAN DAN KONSELING (E-REPORT BK)</h3>
+ <table style="border:0;margin-bottom:4px"><tr><td style="border:0;width:50%">Nama: <b>${e(s.nama)}</b><br>NISN: ${e(s.nisn)}</td><td style="border:0">Kelas: ${e(s.kelas)}<br>Wali Kelas: ${e(waliOf(s))}<br>Semester / TA: ${e(k.smt)} / ${e(k.ta)}</td></tr></table>
+ <table><tr><th style="width:4%">No</th><th style="width:22%">Aspek SKKPD</th><th style="width:12%">Predikat</th><th>Deskripsi Perkembangan</th></tr>
+ ${A.map((a,i)=>`<tr><td style="text-align:center">${i+1}</td><td>${a[0]}</td><td style="text-align:center"><b>${PR[s.sk[i].p]}</b></td><td>${e(s.sk[i].d)}</td></tr>`).join('')}</table>
+ ${disip(s)}<table style="margin-top:5px"><tr><td style="width:50%"><b>Keunggulan Siswa</b><ol style="padding-left:14px;list-style:decimal">${s.u.map(i=>`<li>${e(S.bank.unggul[i])}</li>`).join('')||'<li>-</li>'}</ol></td><td><b>Rekomendasi untuk Orang Tua</b><ol style="padding-left:14px;list-style:decimal">${s.r.map(i=>`<li>${e(S.bank.rek[i])}</li>`).join('')||'<li>-</li>'}</ol></td></tr></table>
+ <table style="margin-top:8px;border:0"><tr><td style="border:0;text-align:center;width:33%">Orang Tua / Wali<br><br><br><br>(....................)</td><td style="border:0;text-align:center;width:33%"><div id="${q}" style="display:inline-block"></div><br><span style="font-size:8px">Pindai untuk verifikasi</span></td><td style="border:0;text-align:center;width:33%">${e(k.kota)}, ${tgl(k.tgl)}<br>Guru BK<br><br><br><u><b>${e(k.gbk)}</b></u><br>NIP. ${e(k.nipGbk)}</td></tr>
+ <tr><td colspan="3" style="border:0;text-align:center">Mengetahui, Kepala Sekolah<br><br><br><br><u><b>${e(k.kepsek)}</b></u><br>NIP. ${e(k.nipKepsek)}</td></tr></table>${FOOT}</div>`}
+function mkqr(id,s){const el=document.getElementById(id);if(!el)return;el.innerHTML='';const raw=s.nisn+s.nama+S.sch.ta+S.sch.smt+s.sk.map(x=>x.p).join('');let h=0;for(const c of raw)h=(h*31+c.charCodeAt(0))>>>0;
+ new QRCode(el,{text:`SmartBK|${S.sch.nama}|NISN:${s.nisn}|${s.nama}|${S.sch.ta} ${S.sch.smt}|KODE:${h.toString(36).toUpperCase()}`,width:72,height:72})}
+VW.rep=()=>{const s=gs(sel);if(!s)return'<p>Tambahkan siswa terlebih dahulu.</p>';
+ return `<h1 class="text-xl font-bold mb-3">Preview E-Report & Export Center</h1><div class="flex flex-wrap gap-2 mb-3 items-center">${selS('render()')}<button class="btn" onclick="printRep()">Cetak / Simpan PDF E-Report</button><button class="btn2" onclick="printKls()">Cetak Satu Kelas</button><select id="ex_k" class="inp" style="width:auto"><option value="">Export: Semua Kelas</option>${kopt('')}</select><button class="btn2" onclick="exportXls(v('ex_k'))">Export Excel Multi-Sheet (.xlsx)</button></div><div class="overflow-x-auto">${repHTML(s,'qr')}</div>`};
+PO.rep=()=>{const s=gs(sel);if(s)mkqr('qr',s)};
+function printRep(){const s=gs(sel);$('#print').innerHTML=repHTML(s,'qrp');mkqr('qrp',s);setTimeout(()=>print(),400)}
+function exportXls0(kf){const wb=XLSX.utils.book_new(),add=(n,ws)=>XLSX.utils.book_append_sheet(wb,ws,n),J=XLSX.utils.json_to_sheet;
+ wb.Props={Title:'SmartBK Digital E-Report',Author:'Lara Foundation',Company:'Ane Debora - 2026'};
+ const inf=XLSX.utils.aoa_to_sheet([['SmartBK Digital: Sistem Manajemen Pemetaan Kelas, Asesmen, Kedisiplinan, & E-Report Bimbingan Konseling Terpadu'],[OWN],[],['Petunjuk Penggunaan'],['Pemetaan_Per_Kelas','Statistik tiap kelas: wali kelas, jumlah siswa, kehadiran, poin, gaya belajar.'],['Database_Siswa','Daftar seluruh siswa (NISN, nama, kelas, gender, wali kelas).'],['Input_SKKPD','Predikat dan deskripsi 11 aspek SKKPD tiap siswa, beserta keunggulan dan rekomendasi orang tua.'],['Rekap_Absensi','Rekap kehadiran S, I, A, T per siswa beserta log harian.'],['Log_Poin_Perilaku','Catatan poin prestasi dan pelanggaran siswa.'],['Bank_Deskripsi','Referensi template deskripsi 11 aspek x 4 predikat.'],['Jurnal_Layanan_BK','Rekap catatan konseling dan layanan.'],['Format_Cetak_Rapor','Lembar rapor siswa terpilih yang dapat diedit manual.'],[],['Hak Cipta','Pemilik Sistem: Ane Debora | Dibuat oleh Lara Foundation © 2026']]);inf['!cols']=[{wch:22},{wch:95}];add('Info_&_Petunjuk',inf);
+ add('Pemetaan_Per_Kelas',J(S.kelas.map(kk=>{const q=kStat(kk.n);return{Kelas:kk.n,Tingkat:kk.t,'Wali Kelas':kk.wali,'NIP Wali Kelas':kk.nip,'Jumlah Siswa':q.n,Laki:q.L,Perempuan:q.P,'Rata-rata Kehadiran':q.has?q.pct+'%':'-','Total Poin Prestasi':q.pres,'Total Poin Pelanggaran':q.pel,'Gaya Visual':q.g.V,'Gaya Auditori':q.g.A,'Gaya Kinestetik':q.g.K}})));
+ add('Database_Siswa',J(S.siswa.map(s=>{const r=rekap(s.id),p=poinOf(s.id);return{NISN:s.nisn,Nama:s.nama,Kelas:s.kelas,Gender:s.jk,'Wali Kelas':waliOf(s),Sakit:r.S,Izin:r.I,Alfa:r.A,Terlambat:r.T,'% Kehadiran':r.tot?r.pct+'%':'-','Poin Prestasi':p.pres,'Poin Pelanggaran':p.pel,'Skor Akhir':p.net,'Status Pembinaan':p.status}})));
+ add('Input_SKKPD',J(S.siswa.map(s=>{const o={NISN:s.nisn,Nama:s.nama,Kelas:s.kelas};A.forEach((a,i)=>{o[(i+1)+'. '+a[0]+' - Predikat']=PR[s.sk[i].p];o[(i+1)+'. '+a[0]+' - Deskripsi']=s.sk[i].d});o.Keunggulan=s.u.map(i=>S.bank.unggul[i]).join('; ');o['Rekomendasi Orang Tua']=s.r.map(i=>S.bank.rek[i]).join('; ');return o})));
+ const ra=[['Rekap Kehadiran Semester '+S.sch.smt+' '+S.sch.ta],['NISN','Nama','Kelas','Hadir','Sakit','Izin','Alfa','Terlambat','Total Hari','% Kehadiran']];S.siswa.forEach(z=>{const q=rekap(z.id);ra.push([z.nisn,z.nama,z.kelas,q.H,q.S,q.I,q.A,q.T,q.tot,q.pct+'%'])});ra.push([],['Log Kehadiran'],['Tanggal','Nama','Kelas','Status','Keterangan']);[...S.absen].sort((a,b)=>a.tgl<b.tgl?-1:1).forEach(a=>{const z=gs(a.sid)||{};ra.push([a.tgl,z.nama||'-',z.kelas||'',a.st,a.ket])});
+ add('Rekap_Absensi',XLSX.utils.aoa_to_sheet(ra));
+ add('Log_Poin_Perilaku',J(S.pl.map(l=>({Tanggal:l.tgl,Siswa:gs(l.sid)?.nama||'-',Jenis:l.j=='P'?'Prestasi':'Pelanggaran',Kategori:l.item,Poin:(l.j=='P'?'+':'-')+l.poin,Kronologi:l.kron,'Tindak Lanjut':l.tl}))));
+ add('Bank_Deskripsi',J(A.map((a,i)=>{const o={Aspek:(i+1)+'. '+a[0]};PR.forEach((p,j)=>o[p]=S.bank.desc[i][j]);return o})));
+ add('Jurnal_Layanan_BK',J(S.jurnal.map(j=>({Tanggal:j.tgl,Siswa:sasaran(j),Layanan:j.jenis,Topik:j.topik,'Tindak Lanjut':j.tl,Status:j.status}))));
+ const s=S.siswa.find(z=>z.id==sel)||S.siswa[0],k=S.sch,r=[[k.nama],['NPSN: '+k.npsn],[k.alamat],[],['LAPORAN PERKEMBANGAN BK (E-REPORT)'],['Nama',s.nama,'','Kelas',s.kelas],['NISN',s.nisn,'','Semester/TA',k.smt+' / '+k.ta],[],['No','Aspek SKKPD','Predikat','Deskripsi']];
+ A.forEach((a,i)=>r.push([i+1,a[0],PR[s.sk[i].p],s.sk[i].d]));
+ {const rk=rekap(s.id),po=poinOf(s.id);r.push([],['Ringkasan Kedisiplinan & Kehadiran'],['Sakit',rk.S,'Izin',rk.I,'Alfa',rk.A,'Terlambat',rk.T],['Kehadiran',rk.tot?rk.pct+'%':'-','Poin Prestasi',po.pres,'Poin Pelanggaran',po.pel,'Status',po.status])}r.push([],['Keunggulan Siswa']);s.u.forEach((i,n)=>r.push([n+1,S.bank.unggul[i]]));r.push([],['Rekomendasi Orang Tua']);s.r.forEach((i,n)=>r.push([n+1,S.bank.rek[i]]));
+ r.push([],['',k.kota+', '+tgl(k.tgl)],['Kepala Sekolah','','Guru BK','','Orang Tua'],[],[],[k.kepsek,'',k.gbk,'','(.................)'],['NIP. '+k.nipKepsek,'','NIP. '+k.nipGbk]);
+ const w=XLSX.utils.aoa_to_sheet(r);w['!cols']=[{wch:14},{wch:34},{wch:18},{wch:90}];add('Format_Cetak_Rapor',w);
+ XLSX.writeFile(wb,'SmartBK_Digital_EReport_'+(kf?kf+'_':'Semua-Kelas_')+k.ta.replace('/','-')+'.xlsx')}
+
+/* BACKUP */
+function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='SmartBK_Digital_Backup_'+new Date().toISOString().slice(0,10)+'.json';a.click()}
+function restore(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=x=>{try{const d=JSON.parse(x.target.result);if(!d.siswa||!d.sch||!d.bank)throw 0;S=d;ensure();sel=S.siswa[0]?.id;save();render();alert('Data berhasil dipulihkan.')}catch(er){alert('File backup tidak valid.')}};r.readAsText(f)}
+render();
+</script>
+</body>
+</html>
